@@ -14,17 +14,6 @@ CREATE TABLE "category" (
 -- -- Employee
 -- -- Category
 -- -- Product
--- -- Coming
---     Datetime
---     Employee
---     Address
---     Status -> in_proccess, success
---     -- Coming_Product
---         Category
---         Product
---         Count
---         Price
---         Total Price
 
 -- -- Remaining
 --     Category
