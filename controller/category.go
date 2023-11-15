@@ -1,73 +1,167 @@
 package controller
 
 import (
-	"errors"
-	"log"
+	"database/sql"
+	"encoding/json"
+	"net/http"
 
-	"github.com/asadbekGo/market_system/config"
 	"github.com/asadbekGo/market_system/models"
+	"github.com/asadbekGo/market_system/pkg/helpers"
 )
 
-func (c *Conn) CreateCategory(req *models.CreateCategory) (*models.Category, error) {
+func (c *Handler) Category(w http.ResponseWriter, r *http.Request) {
 
-	log.Println(config.Info, "Create Category resp >>>>> ", req)
-	resp, err := c.storage.Category().Create(req)
-	if err != nil {
-		return nil, err
+	switch r.Method {
+	case "POST":
+		c.CreateCategory(w, r)
+	case "GET":
+		var values = r.URL.Query()
+		if _, ok := values["id"]; ok {
+			c.GetByIDCategory(w, r)
+		} else {
+			c.GetListCategory(w, r)
+		}
+	case "PUT":
+		c.UpdateCategory(w, r)
+	case "DELETE":
+		c.DeleteCategory(w, r)
 	}
-
-	return resp, nil
 }
 
-func (c *Conn) GetByIDCategory(req *models.CategoryPrimaryKey) (*models.Category, error) {
+func (c *Handler) CreateCategory(w http.ResponseWriter, r *http.Request) {
 
-	log.Println(config.Info, "GetByID Category resp >>>>> ", req)
-	resp, err := c.storage.Category().GetByID(req)
+	var createCategory models.CreateCategory
+	err := json.NewDecoder(r.Body).Decode(&createCategory)
 	if err != nil {
-		return nil, err
+		handleResponse(w, http.StatusBadRequest, err)
+		return
 	}
 
-	return resp, nil
-}
-
-func (c *Conn) GetListCategory(req *models.GetListCategoryRequest) (*models.GetListCategoryResponse, error) {
-
-	log.Println(config.Info, "GetList Category resp >>>>> ", req)
-	resp, err := c.storage.Category().GetList(req)
-	if err != nil {
-		return nil, err
+	if createCategory.ParentID != "" {
+		if !helpers.IsValidUUID(createCategory.ParentID) {
+			handleResponse(w, http.StatusBadRequest, "parent id is not uuid")
+			return
+		}
 	}
 
-	return resp, nil
+	resp, err := c.storage.Category().Create(&createCategory)
+	if err != nil {
+		handleResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	handleResponse(w, http.StatusCreated, resp)
 }
 
-func (c *Conn) UpdateCategory(req *models.UpdateCategory) (*models.Category, error) {
+func (c *Handler) GetByIDCategory(w http.ResponseWriter, r *http.Request) {
 
-	log.Println(config.Info, "Update Category resp >>>>> ", req)
-	rowsAffected, err := c.storage.Category().Update(req)
+	var id = r.URL.Query().Get("id")
+	if !helpers.IsValidUUID(id) {
+		handleResponse(w, http.StatusBadRequest, "id is not uuid")
+		return
+	}
+
+	resp, err := c.storage.Category().GetByID(&models.CategoryPrimaryKey{Id: id})
+	if err == sql.ErrNoRows {
+		handleResponse(w, http.StatusBadRequest, "no rows in result set")
+		return
+	}
+
 	if err != nil {
-		return nil, err
+		handleResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	handleResponse(w, http.StatusOK, resp)
+}
+
+func (c *Handler) GetListCategory(w http.ResponseWriter, r *http.Request) {
+
+	limit, err := getIntegerOrDefaultValue(r.URL.Query().Get("limit"), 10)
+	if err != nil {
+		handleResponse(w, http.StatusBadRequest, "invalid query limit")
+		return
+	}
+
+	offset, err := getIntegerOrDefaultValue(r.URL.Query().Get("offset"), 0)
+	if err != nil {
+		handleResponse(w, http.StatusBadRequest, "invalid query offset")
+		return
+	}
+
+	search := r.URL.Query().Get("search")
+	if err != nil {
+		handleResponse(w, http.StatusBadRequest, "invalid query search")
+		return
+	}
+
+	resp, err := c.storage.Category().GetList(&models.GetListCategoryRequest{
+		Limit:  limit,
+		Offset: offset,
+		Search: search,
+	})
+	if err != nil {
+		handleResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	handleResponse(w, http.StatusOK, resp)
+}
+
+func (c *Handler) UpdateCategory(w http.ResponseWriter, r *http.Request) {
+
+	var updateCategory models.UpdateCategory
+	err := json.NewDecoder(r.Body).Decode(&updateCategory)
+	if err != nil {
+		handleResponse(w, http.StatusBadRequest, err)
+		return
+	}
+
+	if !helpers.IsValidUUID(updateCategory.Id) {
+		handleResponse(w, http.StatusBadRequest, "id is not uuid")
+		return
+	}
+
+	if updateCategory.ParentID != "" {
+		if !helpers.IsValidUUID(updateCategory.ParentID) {
+			handleResponse(w, http.StatusBadRequest, "parent id is not uuid")
+			return
+		}
+	}
+
+	rowsAffected, err := c.storage.Category().Update(&updateCategory)
+	if err != nil {
+		handleResponse(w, http.StatusInternalServerError, err)
+		return
 	}
 
 	if rowsAffected == 0 {
-		return nil, errors.New("no rows affected")
+		handleResponse(w, http.StatusBadRequest, "no rows affected")
+		return
 	}
 
-	resp, err := c.storage.Category().GetByID(&models.CategoryPrimaryKey{Id: req.Id})
+	resp, err := c.storage.Category().GetByID(&models.CategoryPrimaryKey{Id: updateCategory.Id})
 	if err != nil {
-		return nil, err
+		handleResponse(w, http.StatusInternalServerError, err)
+		return
 	}
 
-	return resp, nil
+	handleResponse(w, http.StatusAccepted, resp)
 }
 
-func (c *Conn) DeleteCategory(req *models.CategoryPrimaryKey) error {
+func (c *Handler) DeleteCategory(w http.ResponseWriter, r *http.Request) {
+	var id = r.URL.Query().Get("id")
 
-	log.Println(config.Info, "Delete Category resp >>>>> ", req)
-	err := c.storage.Category().Delete(req)
-	if err != nil {
-		return err
+	if !helpers.IsValidUUID(id) {
+		handleResponse(w, http.StatusBadRequest, "id is not uuid")
+		return
 	}
 
-	return nil
+	err := c.storage.Category().Delete(&models.CategoryPrimaryKey{Id: id})
+	if err != nil {
+		handleResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	handleResponse(w, http.StatusNoContent, nil)
 }

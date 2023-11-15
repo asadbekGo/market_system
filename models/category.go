@@ -27,9 +27,10 @@ type GetListCategoryRequest struct {
 	Offset int64  `json:"offset"`
 	Limit  int64  `json:"limit"`
 	Search string `json:"search"`
+	Query  string `json:"query"`
 }
 
 type GetListCategoryResponse struct {
-	Count      string      `json:"count"`
+	Count      int         `json:"count"`
 	Categories []*Category `json:"categories"`
 }

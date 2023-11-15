@@ -13,6 +13,7 @@ import (
 type Store struct {
 	db       *sql.DB
 	category storage.CategoryRepoI
+	product  storage.ProductRepoI
 }
 
 func NewConnectionPostgres(cfg *config.Config) (storage.StorageI, error) {
@@ -43,4 +44,13 @@ func (s *Store) Category() storage.CategoryRepoI {
 	}
 
 	return s.category
+}
+
+func (s *Store) Product() storage.ProductRepoI {
+
+	if s.product == nil {
+		s.product = NewProductRepo(s.db)
+	}
+
+	return s.product
 }

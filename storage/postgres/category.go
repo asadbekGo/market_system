@@ -98,6 +98,10 @@ func (r *categoryRepo) GetList(req *models.GetListCategoryRequest) (*models.GetL
 		where += " AND title ILIKE" + " '%" + req.Search + "%'"
 	}
 
+	if len(req.Query) > 0 {
+		where += req.Query
+	}
+
 	var query = `
 		SELECT
 			COUNT(*) OVER(),

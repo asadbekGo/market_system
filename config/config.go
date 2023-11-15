@@ -20,6 +20,9 @@ type Config struct {
 	PostgresDatabase string
 	PostgresPassword string
 	PostgresPort     string
+
+	ServiceHost     string
+	ServiceHTTPPort string
 }
 
 func Load() Config {
@@ -29,6 +32,9 @@ func Load() Config {
 	}
 
 	var cfg Config
+
+	cfg.ServiceHost = cast.ToString(getValueOrDefault("SERVICE_HOST", "localhost"))
+	cfg.ServiceHTTPPort = cast.ToString(getValueOrDefault("SERVICE_HTTP_PORT", ":8080"))
 
 	cfg.PostgresHost = cast.ToString(getValueOrDefault("POSTGRES_HOST", "localhost"))
 	cfg.PostgresUser = cast.ToString(getValueOrDefault("POSTGRES_USER", "postgres"))
