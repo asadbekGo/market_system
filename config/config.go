@@ -15,11 +15,12 @@ const (
 )
 
 type Config struct {
-	PostgresHost     string
-	PostgresUser     string
-	PostgresDatabase string
-	PostgresPassword string
-	PostgresPort     string
+	PostgresHost          string
+	PostgresUser          string
+	PostgresDatabase      string
+	PostgresPassword      string
+	PostgresPort          string
+	PostgresMaxConnection int32
 
 	ServiceHost     string
 	ServiceHTTPPort string
@@ -41,6 +42,7 @@ func Load() Config {
 	cfg.PostgresDatabase = cast.ToString(getValueOrDefault("POSTGRES_DATABASE", "market_system"))
 	cfg.PostgresPassword = cast.ToString(getValueOrDefault("POSTGRES_PASSWORD", "3066586"))
 	cfg.PostgresPort = cast.ToString(getValueOrDefault("POSTGRES_PORT", "5432"))
+	cfg.PostgresMaxConnection = cast.ToInt32(getValueOrDefault("POSTGRES_MAX_CONN", 30))
 
 	return cfg
 }

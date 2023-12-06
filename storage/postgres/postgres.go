@@ -1,39 +1,43 @@
 package postgres
 
 import (
-	"database/sql"
+	"context"
 	"fmt"
 
 	"github.com/asadbekGo/market_system/config"
 	"github.com/asadbekGo/market_system/storage"
-
-	_ "github.com/lib/pq"
+	"github.com/jackc/pgx/v4/pgxpool"
 )
 
 type Store struct {
-	db       *sql.DB
+	db       *pgxpool.Pool
 	category storage.CategoryRepoI
 	product  storage.ProductRepoI
 }
 
 func NewConnectionPostgres(cfg *config.Config) (storage.StorageI, error) {
 
-	connect := fmt.Sprintf(
-		"host=%s user=%s dbname=%s password=%s port=%s sslmode=disable",
-		cfg.PostgresHost,
-		cfg.PostgresUser,
-		cfg.PostgresDatabase,
-		cfg.PostgresPassword,
-		cfg.PostgresPort,
+	config, err := pgxpool.ParseConfig(
+		fmt.Sprintf(
+			"host=%s user=%s dbname=%s password=%s port=%s sslmode=disable",
+			cfg.PostgresHost,
+			cfg.PostgresUser,
+			cfg.PostgresDatabase,
+			cfg.PostgresPassword,
+			cfg.PostgresPort,
+		),
 	)
 
-	db, err := sql.Open("postgres", connect)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
+	config.MaxConns = cfg.PostgresMaxConnection
+
+	pgxpool, err := pgxpool.ConnectConfig(context.Background(), config)
+
 	return &Store{
-		db: db,
+		db: pgxpool,
 	}, nil
 }
 

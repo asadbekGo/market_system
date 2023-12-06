@@ -12,11 +12,34 @@ func SetUpApi(r *gin.Engine, cfg *config.Config, strg storage.StorageI) {
 
 	handler := handler.NewHandler(cfg, strg)
 
-	// Category ...
-	r.POST("/category", handler.CreateCategory)
-	r.GET("/category/:id", handler.GetByIDCategory)
-	r.GET("/category", handler.GetListCategory)
-	r.PUT("/category/:id", handler.UpdateCategory)
-	r.DELETE("/category/:id", handler.DeleteCategory)
+	r.Use(customCORSMiddleware())
 
+	v1 := r.Group("/v1")
+	v1.Use(handler.CheckPasswordMiddleware())
+
+	// Category ...
+	v1.POST("/category", handler.CreateCategory)
+	v1.GET("/category/:id", handler.GetByIDCategory)
+	v1.GET("/category", handler.GetListCategory)
+	v1.PUT("/category/:id", handler.UpdateCategory)
+	v1.DELETE("/category/:id", handler.DeleteCategory)
+}
+
+func customCORSMiddleware() gin.HandlerFunc {
+
+	return func(c *gin.Context) {
+
+		c.Header("Access-Control-Allow-Origin", "*")
+		c.Header("Access-Control-Allow-Credentials", "true")
+		c.Header("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, PATCH, DELETE, HEAD")
+		c.Header("Access-Control-Allow-Headers", "Password, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
+		c.Header("Access-Control-Max-Age", "3600")
+
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
+			return
+		}
+
+		c.Next()
+	}
 }

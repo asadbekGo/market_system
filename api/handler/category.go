@@ -1,9 +1,11 @@
 package handler
 
 import (
+	"context"
 	"database/sql"
 	"net/http"
 
+	"github.com/asadbekGo/market_system/config"
 	"github.com/asadbekGo/market_system/models"
 	"github.com/asadbekGo/market_system/pkg/helpers"
 	"github.com/gin-gonic/gin"
@@ -11,10 +13,16 @@ import (
 
 func (h *Handler) CreateCategory(c *gin.Context) {
 
+	password := c.GetHeader("Password")
+	if password != "1234" {
+		handleResponse(c, http.StatusUnauthorized, "The request requires an user authentication.")
+		return
+	}
+
 	var createCategory models.CreateCategory
 	err := c.ShouldBindJSON(&createCategory)
 	if err != nil {
-		c.JSON(400, "ShouldBindJSON err:"+err.Error())
+		handleResponse(c, 400, "ShouldBindJSON err:"+err.Error())
 		return
 	}
 
@@ -25,7 +33,10 @@ func (h *Handler) CreateCategory(c *gin.Context) {
 		}
 	}
 
-	resp, err := h.strg.Category().Create(&createCategory)
+	ctx, cancel := context.WithTimeout(context.Background(), config.CtxTimeout)
+	defer cancel()
+
+	resp, err := h.strg.Category().Create(ctx, &createCategory)
 	if err != nil {
 		handleResponse(c, http.StatusInternalServerError, err)
 		return
@@ -42,7 +53,10 @@ func (h *Handler) GetByIDCategory(c *gin.Context) {
 		return
 	}
 
-	resp, err := h.strg.Category().GetByID(&models.CategoryPrimaryKey{Id: id})
+	ctx, cancel := context.WithTimeout(context.Background(), config.CtxTimeout)
+	defer cancel()
+
+	resp, err := h.strg.Category().GetByID(ctx, &models.CategoryPrimaryKey{Id: id})
 	if err == sql.ErrNoRows {
 		handleResponse(c, http.StatusBadRequest, "no rows in result set")
 		return
@@ -76,7 +90,10 @@ func (h *Handler) GetListCategory(c *gin.Context) {
 		return
 	}
 
-	resp, err := h.strg.Category().GetList(&models.GetListCategoryRequest{
+	ctx, cancel := context.WithTimeout(context.Background(), config.CtxTimeout)
+	defer cancel()
+
+	resp, err := h.strg.Category().GetList(ctx, &models.GetListCategoryRequest{
 		Limit:  limit,
 		Offset: offset,
 		Search: search,
@@ -113,7 +130,10 @@ func (h *Handler) UpdateCategory(c *gin.Context) {
 		}
 	}
 
-	rowsAffected, err := h.strg.Category().Update(&updateCategory)
+	ctx, cancel := context.WithTimeout(context.Background(), config.CtxTimeout)
+	defer cancel()
+
+	rowsAffected, err := h.strg.Category().Update(ctx, &updateCategory)
 	if err != nil {
 		handleResponse(c, http.StatusInternalServerError, err)
 		return
@@ -124,7 +144,10 @@ func (h *Handler) UpdateCategory(c *gin.Context) {
 		return
 	}
 
-	resp, err := h.strg.Category().GetByID(&models.CategoryPrimaryKey{Id: updateCategory.Id})
+	ctx, cancel = context.WithTimeout(context.Background(), config.CtxTimeout)
+	defer cancel()
+
+	resp, err := h.strg.Category().GetByID(ctx, &models.CategoryPrimaryKey{Id: updateCategory.Id})
 	if err != nil {
 		handleResponse(c, http.StatusInternalServerError, err)
 		return
@@ -141,7 +164,10 @@ func (h *Handler) DeleteCategory(c *gin.Context) {
 		return
 	}
 
-	err := h.strg.Category().Delete(&models.CategoryPrimaryKey{Id: id})
+	ctx, cancel := context.WithTimeout(context.Background(), config.CtxTimeout)
+	defer cancel()
+
+	err := h.strg.Category().Delete(ctx, &models.CategoryPrimaryKey{Id: id})
 	if err != nil {
 		handleResponse(c, http.StatusInternalServerError, err)
 		return

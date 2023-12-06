@@ -1,25 +1,27 @@
 package postgres
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 
 	"github.com/asadbekGo/market_system/models"
 	"github.com/asadbekGo/market_system/pkg/helpers"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v4/pgxpool"
 )
 
 type categoryRepo struct {
-	db *sql.DB
+	db *pgxpool.Pool
 }
 
-func NewCategoryRepo(db *sql.DB) *categoryRepo {
+func NewCategoryRepo(db *pgxpool.Pool) *categoryRepo {
 	return &categoryRepo{
 		db: db,
 	}
 }
 
-func (r *categoryRepo) Create(req *models.CreateCategory) (*models.Category, error) {
+func (r *categoryRepo) Create(ctx context.Context, req *models.CreateCategory) (*models.Category, error) {
 
 	var (
 		categoryId = uuid.New().String()
@@ -32,7 +34,7 @@ func (r *categoryRepo) Create(req *models.CreateCategory) (*models.Category, err
 			) VALUES ($1, $2, $3, NOW())`
 	)
 
-	_, err := r.db.Exec(
+	_, err := r.db.Exec(ctx,
 		query,
 		categoryId,
 		req.Title,
@@ -43,14 +45,13 @@ func (r *categoryRepo) Create(req *models.CreateCategory) (*models.Category, err
 		return nil, err
 	}
 
-	return r.GetByID(&models.CategoryPrimaryKey{Id: categoryId})
+	return r.GetByID(ctx, &models.CategoryPrimaryKey{Id: categoryId})
 }
 
-func (r *categoryRepo) GetByID(req *models.CategoryPrimaryKey) (*models.Category, error) {
+func (r *categoryRepo) GetByID(ctx context.Context, req *models.CategoryPrimaryKey) (*models.Category, error) {
 
 	var (
-		category models.Category
-		query    = `
+		query = `
 			SELECT
 				"id",
 				"title",
@@ -62,22 +63,36 @@ func (r *categoryRepo) GetByID(req *models.CategoryPrimaryKey) (*models.Category
 		`
 	)
 
-	err := r.db.QueryRow(query, req.Id).Scan(
-		&category.Id,
-		&category.Title,
-		&category.ParentID,
-		&category.CreatedAt,
-		&category.UpdatedAt,
+	var (
+		Id        sql.NullString
+		Title     sql.NullString
+		ParentID  sql.NullString
+		CreatedAt sql.NullString
+		UpdatedAt sql.NullString
+	)
+
+	err := r.db.QueryRow(ctx, query, req.Id).Scan(
+		&Id,
+		&Title,
+		&ParentID,
+		&CreatedAt,
+		&UpdatedAt,
 	)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return &category, nil
+	return &models.Category{
+		Id:        Id.String,
+		Title:     Title.String,
+		ParentID:  ParentID.String,
+		CreatedAt: CreatedAt.String,
+		UpdatedAt: UpdatedAt.String,
+	}, nil
 }
 
-func (r *categoryRepo) GetList(req *models.GetListCategoryRequest) (*models.GetListCategoryResponse, error) {
+func (r *categoryRepo) GetList(ctx context.Context, req *models.GetListCategoryRequest) (*models.GetListCategoryResponse, error) {
 	var (
 		resp   models.GetListCategoryResponse
 		where  = " WHERE TRUE"
@@ -114,7 +129,7 @@ func (r *categoryRepo) GetList(req *models.GetListCategoryRequest) (*models.GetL
 	`
 
 	query += where + sort + offset + limit
-	rows, err := r.db.Query(query)
+	rows, err := r.db.Query(ctx, query)
 	if err != nil {
 		return nil, err
 	}
@@ -144,7 +159,7 @@ func (r *categoryRepo) GetList(req *models.GetListCategoryRequest) (*models.GetL
 	return &resp, nil
 }
 
-func (r *categoryRepo) Update(req *models.UpdateCategory) (int64, error) {
+func (r *categoryRepo) Update(ctx context.Context, req *models.UpdateCategory) (int64, error) {
 
 	query := `
 		UPDATE category
@@ -153,7 +168,7 @@ func (r *categoryRepo) Update(req *models.UpdateCategory) (int64, error) {
 				parent_id = $3
 		WHERE id = $1
 	`
-	result, err := r.db.Exec(
+	rowsAffected, err := r.db.Exec(ctx,
 		query,
 		req.Id,
 		req.Title,
@@ -163,15 +178,10 @@ func (r *categoryRepo) Update(req *models.UpdateCategory) (int64, error) {
 		return 0, err
 	}
 
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return 0, err
-	}
-
-	return rowsAffected, nil
+	return rowsAffected.RowsAffected(), nil
 }
 
-func (r *categoryRepo) Delete(req *models.CategoryPrimaryKey) error {
-	_, err := r.db.Exec("DELETE FROM category WHERE id = $1", req.Id)
+func (r *categoryRepo) Delete(ctx context.Context, req *models.CategoryPrimaryKey) error {
+	_, err := r.db.Exec(ctx, "DELETE FROM category WHERE id = $1", req.Id)
 	return err
 }

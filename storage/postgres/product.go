@@ -1,25 +1,27 @@
 package postgres
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 
 	"github.com/asadbekGo/market_system/models"
 	"github.com/asadbekGo/market_system/pkg/helpers"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v4/pgxpool"
 )
 
 type productRepo struct {
-	db *sql.DB
+	db *pgxpool.Pool
 }
 
-func NewProductRepo(db *sql.DB) *productRepo {
+func NewProductRepo(db *pgxpool.Pool) *productRepo {
 	return &productRepo{
 		db: db,
 	}
 }
 
-func (r *productRepo) Create(req *models.CreateProduct) (*models.Product, error) {
+func (r *productRepo) Create(ctx context.Context, req *models.CreateProduct) (*models.Product, error) {
 
 	var (
 		productId = uuid.New().String()
@@ -35,7 +37,7 @@ func (r *productRepo) Create(req *models.CreateProduct) (*models.Product, error)
 			) VALUES ($1, $2, $3, $4, $5, $6, NOW())`
 	)
 
-	_, err := r.db.Exec(
+	_, err := r.db.Exec(ctx,
 		query,
 		productId,
 		req.Name,
@@ -49,10 +51,10 @@ func (r *productRepo) Create(req *models.CreateProduct) (*models.Product, error)
 		return nil, err
 	}
 
-	return r.GetByID(&models.ProductPrimaryKey{Id: productId})
+	return r.GetByID(ctx, &models.ProductPrimaryKey{Id: productId})
 }
 
-func (r *productRepo) GetByID(req *models.ProductPrimaryKey) (*models.Product, error) {
+func (r *productRepo) GetByID(ctx context.Context, req *models.ProductPrimaryKey) (*models.Product, error) {
 
 	var (
 		query = `
@@ -81,7 +83,7 @@ func (r *productRepo) GetByID(req *models.ProductPrimaryKey) (*models.Product, e
 		created_at  sql.NullString
 	)
 
-	err := r.db.QueryRow(query, req.Id).Scan(
+	err := r.db.QueryRow(ctx, query, req.Id).Scan(
 		&id,
 		&name,
 		&barcode,
@@ -108,7 +110,7 @@ func (r *productRepo) GetByID(req *models.ProductPrimaryKey) (*models.Product, e
 	}, nil
 }
 
-func (r *productRepo) GetList(req *models.GetListProductRequest) (*models.GetListProductResponse, error) {
+func (r *productRepo) GetList(ctx context.Context, req *models.GetListProductRequest) (*models.GetListProductResponse, error) {
 	var (
 		resp   models.GetListProductResponse
 		where  = " WHERE TRUE"
@@ -144,7 +146,7 @@ func (r *productRepo) GetList(req *models.GetListProductRequest) (*models.GetLis
 	`
 
 	query += where + sort + offset + limit
-	rows, err := r.db.Query(query)
+	rows, err := r.db.Query(ctx, query)
 	if err != nil {
 		return nil, err
 	}
@@ -191,7 +193,7 @@ func (r *productRepo) GetList(req *models.GetListProductRequest) (*models.GetLis
 	return &resp, nil
 }
 
-func (r *productRepo) Update(req *models.UpdateProduct) (int64, error) {
+func (r *productRepo) Update(ctx context.Context, req *models.UpdateProduct) (int64, error) {
 
 	query := `
 		UPDATE product
@@ -203,7 +205,7 @@ func (r *productRepo) Update(req *models.UpdateProduct) (int64, error) {
 				category_id = $6,
 		WHERE id = $1
 	`
-	result, err := r.db.Exec(
+	rowsAffected, err := r.db.Exec(ctx,
 		query,
 		req.Id,
 		req.Name,
@@ -216,15 +218,10 @@ func (r *productRepo) Update(req *models.UpdateProduct) (int64, error) {
 		return 0, err
 	}
 
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return 0, err
-	}
-
-	return rowsAffected, nil
+	return rowsAffected.RowsAffected(), nil
 }
 
-func (r *productRepo) Delete(req *models.ProductPrimaryKey) error {
-	_, err := r.db.Exec("DELETE FROM product WHERE id = $1", req.Id)
+func (r *productRepo) Delete(ctx context.Context, req *models.ProductPrimaryKey) error {
+	_, err := r.db.Exec(ctx, "DELETE FROM product WHERE id = $1", req.Id)
 	return err
 }
