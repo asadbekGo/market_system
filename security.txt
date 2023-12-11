@@ -1,9 +1,0 @@
-
-
-PUBLIC 
-    /book   
-    /news
-    /order  <--- PRIVATE
-
-
-

@@ -14,8 +14,17 @@ func SetUpApi(r *gin.Engine, cfg *config.Config, strg storage.StorageI) {
 
 	r.Use(customCORSMiddleware())
 
+	r.POST("/login", handler.Login)
+
 	v1 := r.Group("/v1")
-	v1.Use(handler.CheckPasswordMiddleware())
+	v1.Use(handler.AuthMiddleware())
+
+	// User ...
+	v1.POST("/user", handler.CreateUser)
+	v1.GET("/user/:id", handler.GetByIDUser)
+	v1.GET("/user", handler.GetListUser)
+	v1.PUT("/user/:id", handler.UpdateUser)
+	v1.DELETE("/user/:id", handler.DeleteUser)
 
 	// Category ...
 	v1.POST("/category", handler.CreateCategory)

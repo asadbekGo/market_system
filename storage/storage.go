@@ -9,6 +9,7 @@ import (
 type StorageI interface {
 	Category() CategoryRepoI
 	Product() ProductRepoI
+	User() UserRepoI
 }
 
 type CategoryRepoI interface {
@@ -25,4 +26,12 @@ type ProductRepoI interface {
 	GetList(ctx context.Context, req *models.GetListProductRequest) (*models.GetListProductResponse, error)
 	Update(ctx context.Context, req *models.UpdateProduct) (int64, error)
 	Delete(ctx context.Context, req *models.ProductPrimaryKey) error
+}
+
+type UserRepoI interface {
+	Create(ctx context.Context, req *models.CreateUser) (*models.User, error)
+	GetByID(ctx context.Context, req *models.UserPrimaryKey) (*models.User, error)
+	GetList(ctx context.Context, req *models.GetListUserRequest) (*models.GetListUserResponse, error)
+	Update(ctx context.Context, req *models.UpdateUser) (int64, error)
+	Delete(ctx context.Context, req *models.UserPrimaryKey) error
 }

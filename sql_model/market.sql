@@ -19,30 +19,15 @@ CREATE TABLE "product" (
     "updated_at" TIMESTAMP
 );
 
-    
--- -- Employee
--- -- Category
--- -- Product
-
--- -- Remaining
---     Category
---     Product
---     Count
---     Price
---     Total Price
-
--- -- Sales
---     sale_id -> S-0000001
---     address
---     datetime
---     Total Sum
---     Total Count
---     -- Sales_Product
---         Category
---         Product
---         Count
---         Price
---         Total Price
-
-
+CREATE TABLE "user" (
+    "id" UUID NOT NULL PRIMARY KEY,
+    "first_name" VARCHAR(46) NOT NULL,
+    "last_name" VARCHAR(46) NOT NULL,
+    "login" VARCHAR(46) NOT NULL,
+    "password" VARCHAR NOT NULL,
+    "active" BOOLEAN NOT NULL DEFAULT true,
+    "client_type" VARCHAR(46) NOT NULL,
+    "created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP
+);
 

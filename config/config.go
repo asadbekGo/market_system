@@ -24,6 +24,8 @@ type Config struct {
 
 	ServiceHost     string
 	ServiceHTTPPort string
+
+	SecretKey string
 }
 
 func Load() Config {
@@ -43,6 +45,8 @@ func Load() Config {
 	cfg.PostgresPassword = cast.ToString(getValueOrDefault("POSTGRES_PASSWORD", "3066586"))
 	cfg.PostgresPort = cast.ToString(getValueOrDefault("POSTGRES_PORT", "5432"))
 	cfg.PostgresMaxConnection = cast.ToInt32(getValueOrDefault("POSTGRES_MAX_CONN", 30))
+
+	cfg.SecretKey = cast.ToString(getValueOrDefault("SECRET_KEY", "q6T6LlwdRk"))
 
 	return cfg
 }

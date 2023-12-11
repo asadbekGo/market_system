@@ -3,6 +3,7 @@ module github.com/asadbekGo/market_system
 go 1.20
 
 require (
+	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/gin-gonic/gin v1.9.1
 	github.com/google/uuid v1.4.0
 	github.com/jackc/pgx/v4 v4.18.1

@@ -11,32 +11,18 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func (h *Handler) CreateCategory(c *gin.Context) {
-
-	password := c.GetHeader("Password")
-	if password != "1234" {
-		handleResponse(c, http.StatusUnauthorized, "The request requires an user authentication.")
-		return
-	}
-
-	var createCategory models.CreateCategory
-	err := c.ShouldBindJSON(&createCategory)
+func (h *Handler) CreateUser(c *gin.Context) {
+	var createUser models.CreateUser
+	err := c.ShouldBindJSON(&createUser)
 	if err != nil {
-		handleResponse(c, 400, "ShouldBindJSON err:"+err.Error())
+		handleResponse(c, http.StatusBadRequest, "ShouldBindJSON err:"+err.Error())
 		return
-	}
-
-	if createCategory.ParentID != "" {
-		if !helpers.IsValidUUID(createCategory.ParentID) {
-			handleResponse(c, http.StatusBadRequest, "parent id is not uuid")
-			return
-		}
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), config.CtxTimeout)
 	defer cancel()
 
-	resp, err := h.strg.Category().Create(ctx, &createCategory)
+	resp, err := h.strg.User().Create(ctx, &createUser)
 	if err != nil {
 		handleResponse(c, http.StatusInternalServerError, err)
 		return
@@ -45,7 +31,7 @@ func (h *Handler) CreateCategory(c *gin.Context) {
 	handleResponse(c, http.StatusCreated, resp)
 }
 
-func (h *Handler) GetByIDCategory(c *gin.Context) {
+func (h *Handler) GetByIDUser(c *gin.Context) {
 
 	var id = c.Param("id")
 	if !helpers.IsValidUUID(id) {
@@ -56,7 +42,7 @@ func (h *Handler) GetByIDCategory(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(context.Background(), config.CtxTimeout)
 	defer cancel()
 
-	resp, err := h.strg.Category().GetByID(ctx, &models.CategoryPrimaryKey{Id: id})
+	resp, err := h.strg.User().GetByID(ctx, &models.UserPrimaryKey{Id: id})
 	if err == sql.ErrNoRows {
 		handleResponse(c, http.StatusBadRequest, "no rows in result set")
 		return
@@ -70,7 +56,7 @@ func (h *Handler) GetByIDCategory(c *gin.Context) {
 	handleResponse(c, http.StatusOK, resp)
 }
 
-func (h *Handler) GetListCategory(c *gin.Context) {
+func (h *Handler) GetListUser(c *gin.Context) {
 
 	limit, err := getIntegerOrDefaultValue(c.Query("limit"), 10)
 	if err != nil {
@@ -93,14 +79,10 @@ func (h *Handler) GetListCategory(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(context.Background(), config.CtxTimeout)
 	defer cancel()
 
-	// userId, _ := c.Get("user_id")
-
-	resp, err := h.strg.Category().GetList(ctx, &models.GetListCategoryRequest{
+	resp, err := h.strg.User().GetList(ctx, &models.GetListUserRequest{
 		Limit:  limit,
 		Offset: offset,
 		Search: search,
-
-		// UserId: userId,
 	})
 	if err != nil {
 		handleResponse(c, http.StatusInternalServerError, err)
@@ -110,11 +92,11 @@ func (h *Handler) GetListCategory(c *gin.Context) {
 	handleResponse(c, http.StatusOK, resp)
 }
 
-func (h *Handler) UpdateCategory(c *gin.Context) {
+func (h *Handler) UpdateUser(c *gin.Context) {
 
-	var updateCategory models.UpdateCategory
+	var updateUser models.UpdateUser
 
-	err := c.ShouldBindJSON(&updateCategory)
+	err := c.ShouldBindJSON(&updateUser)
 	if err != nil {
 		handleResponse(c, http.StatusBadRequest, err.Error())
 		return
@@ -125,19 +107,12 @@ func (h *Handler) UpdateCategory(c *gin.Context) {
 		handleResponse(c, http.StatusBadRequest, "id is not uuid")
 		return
 	}
-	updateCategory.Id = id
-
-	if updateCategory.ParentID != "" {
-		if !helpers.IsValidUUID(updateCategory.ParentID) {
-			handleResponse(c, http.StatusBadRequest, "parent id is not uuid")
-			return
-		}
-	}
+	updateUser.Id = id
 
 	ctx, cancel := context.WithTimeout(context.Background(), config.CtxTimeout)
 	defer cancel()
 
-	rowsAffected, err := h.strg.Category().Update(ctx, &updateCategory)
+	rowsAffected, err := h.strg.User().Update(ctx, &updateUser)
 	if err != nil {
 		handleResponse(c, http.StatusInternalServerError, err)
 		return
@@ -151,7 +126,7 @@ func (h *Handler) UpdateCategory(c *gin.Context) {
 	ctx, cancel = context.WithTimeout(context.Background(), config.CtxTimeout)
 	defer cancel()
 
-	resp, err := h.strg.Category().GetByID(ctx, &models.CategoryPrimaryKey{Id: updateCategory.Id})
+	resp, err := h.strg.User().GetByID(ctx, &models.UserPrimaryKey{Id: updateUser.Id})
 	if err != nil {
 		handleResponse(c, http.StatusInternalServerError, err)
 		return
@@ -160,7 +135,7 @@ func (h *Handler) UpdateCategory(c *gin.Context) {
 	handleResponse(c, http.StatusAccepted, resp)
 }
 
-func (h *Handler) DeleteCategory(c *gin.Context) {
+func (h *Handler) DeleteUser(c *gin.Context) {
 	var id = c.Param("id")
 
 	if !helpers.IsValidUUID(id) {
@@ -171,7 +146,7 @@ func (h *Handler) DeleteCategory(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(context.Background(), config.CtxTimeout)
 	defer cancel()
 
-	err := h.strg.Category().Delete(ctx, &models.CategoryPrimaryKey{Id: id})
+	err := h.strg.User().Delete(ctx, &models.UserPrimaryKey{Id: id})
 	if err != nil {
 		handleResponse(c, http.StatusInternalServerError, err)
 		return
